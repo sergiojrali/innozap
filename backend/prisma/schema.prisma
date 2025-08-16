@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  connections Connection[]
+  contacts  Contact[]
+  chats     Chat[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  roles     UserRole[]
+}
+
+model UserRole {
+  id       String @id @default(cuid())
+  userId   String
+  role     String
+  user     User   @relation(fields: [userId], references: [id])
+}
+
+model Connection {
+  id           String   @id @default(cuid())
+  name         String
+  status       ConnectionStatus @default(OFFLINE)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  authPath     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  phoneNumber  String?
+  lastSeen     DateTime?
+  messages     Message[]
+}
+
+enum ConnectionStatus {
+  ONLINE
+  OFFLINE
+  CONNECTING
+  LOGGED_OUT
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  jid       String   @unique
+  name      String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chats     Chat[]
+}
+
+model Chat {
+  id           String   @id @default(cuid())
+  jid          String   @unique
+  contactId    String?
+  contact      Contact? @relation(fields: [contactId], references: [id])
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  messages     Message[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Message {
+  id           String   @id @default(cuid())
+  waId         String   @unique
+  chatId       String
+  chat         Chat     @relation(fields: [chatId], references: [id])
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id])
+  fromMe       Boolean
+  senderJid    String
+  type         String
+  text         String?
+  mediaUrl     String?
+  raw          Json
+  timestamp    DateTime
+  createdAt    DateTime @default(now())
+}
